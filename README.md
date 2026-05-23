@@ -186,6 +186,28 @@ Suggested screenshots:
 - Recovery feast result
 - Strava callback success page
 
+## Frontend Polish
+
+The frontend is designed as a streamlined consumer dashboard for **Recovery Feast**:
+
+- polished header and hero section
+- clear Strava connected/disconnected state
+- location controls without exposing coordinate values
+- cuisine selection
+- recovery score visual
+- workout, restaurant, and AI meal recommendation cards
+- large **Claim Your Table** action
+
+Frontend now includes smooth scrolling, animated step sections, and polished dashboard visuals.
+
+The official Recovery Feast logo asset lives here:
+
+```text
+frontend/public/assets/recovery-feast-logo.png
+```
+
+The frontend uses this logo in the top navigation, hero section, empty state, and browser favicon.
+
 ## API List
 
 ### Core
