@@ -7,6 +7,7 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 class Settings(BaseSettings):
     app_name: str = "AI Recovery & Post-Workout Feast Architect"
+    environment: str = "development"
     database_url: str = "sqlite:///./recovery_feast.db"
     strava_client_id: str = ""
     strava_client_secret: str = ""

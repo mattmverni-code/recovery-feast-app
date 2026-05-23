@@ -11,6 +11,8 @@ The app connects:
 
 This project is built for local development and beginner-friendly demos.
 
+For public deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ## Architecture
 
 ```mermaid
