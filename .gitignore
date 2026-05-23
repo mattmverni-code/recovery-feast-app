@@ -1,0 +1,33 @@
+# Local secrets
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+backend/.venv/
+backend/venv/
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+backend/recovery_feast.db
+
+# Frontend
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+.npm-cache/
+frontend/.npm-cache/
+
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/
