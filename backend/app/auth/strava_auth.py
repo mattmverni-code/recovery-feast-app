@@ -40,8 +40,9 @@ def strava_login() -> RedirectResponse:
 def strava_callback(
     code: Optional[str] = Query(default=None),
     error: Optional[str] = Query(default=None),
+    debug: bool = Query(default=False),
     db: Session = Depends(get_db),
-) -> dict:
+):
     if error:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -57,10 +58,20 @@ def strava_callback(
     token_data = exchange_code_for_tokens(code)
     strava_token = save_strava_tokens(db, token_data)
 
-    return {
+    callback_response = {
         "message": "Strava account connected successfully.",
         "athlete_id": strava_token.athlete_id,
         "firstname": strava_token.firstname,
         "lastname": strava_token.lastname,
         "next_step": f"{settings.app_base_url}/docs",
     }
+
+    if debug:
+        return callback_response
+
+    query_params = {
+        "athlete_id": strava_token.athlete_id,
+        "firstname": strava_token.firstname or "",
+    }
+    frontend_url = f"{settings.frontend_base_url}?{urlencode(query_params)}"
+    return RedirectResponse(frontend_url)

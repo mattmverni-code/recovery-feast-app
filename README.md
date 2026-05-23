@@ -169,9 +169,9 @@ http://localhost:5173
 3. Open `http://localhost:5173`.
 4. Click **Connect Strava**.
 5. Approve Strava access.
-6. Copy the returned `athlete_id`.
-7. Paste the `athlete_id` into the dashboard.
-8. Enter latitude and longitude.
+6. The app returns to the dashboard and saves your connected Strava athlete locally in the browser.
+7. Confirm that the dashboard says **Strava connected**.
+8. Use your current location or confirm the city and ZIP Code.
 9. Choose a cuisine.
 10. Click **Generate Recovery Feast**.
 11. Review the workout, restaurant, AI meal recommendation, and **Claim Your Table** link.
@@ -198,6 +198,8 @@ Suggested screenshots:
 - `GET /auth/strava/login`
 - `GET /auth/strava/callback`
 - `GET /activities/{athlete_id}`
+
+After successful OAuth, the callback redirects to the frontend with `athlete_id` and `firstname` query parameters. The frontend saves those values in `localStorage`, so users do not need to type their athlete ID manually.
 
 ### Yelp
 

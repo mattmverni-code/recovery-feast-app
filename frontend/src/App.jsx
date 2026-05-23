@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
@@ -19,6 +19,14 @@ const emptyPlan = {
   selected_restaurant: null,
   meal_recommendation: null,
   reservation_deep_link: "",
+};
+
+const defaultLocation = {
+  city: "Arlington",
+  zipCode: "22201",
+  latitude: "38.88",
+  longitude: "-77.10",
+  status: "Using Arlington, VA",
 };
 
 function InfoCard({ title, children }) {
@@ -45,32 +53,98 @@ function DetailRow({ label, value }) {
 
 function App() {
   const [form, setForm] = useState({
-    athlete_id: "",
-    latitude: "38.88",
-    longitude: "-77.10",
+    city: defaultLocation.city,
+    zipCode: defaultLocation.zipCode,
+    latitude: defaultLocation.latitude,
+    longitude: defaultLocation.longitude,
     cuisine: "Italian",
+  });
+  const [stravaUser, setStravaUser] = useState({
+    athleteId: localStorage.getItem("strava_athlete_id") || "",
+    firstname: localStorage.getItem("strava_firstname") || "",
   });
   const [plan, setPlan] = useState(emptyPlan);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [locationStatus, setLocationStatus] = useState(defaultLocation.status);
   const [error, setError] = useState("");
 
   const canClaimTable = Boolean(plan.reservation_deep_link);
+  const isStravaConnected = Boolean(stravaUser.athleteId);
 
   const workoutDistance = useMemo(() => {
     if (!plan.workout?.distance_meters) return null;
     return `${(plan.workout.distance_meters / 1609.344).toFixed(2)} miles`;
   }, [plan.workout]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const athleteId = params.get("athlete_id");
+    const firstname = params.get("firstname") || "";
+
+    if (!athleteId) return;
+
+    localStorage.setItem("strava_athlete_id", athleteId);
+    localStorage.setItem("strava_firstname", firstname);
+    setStravaUser({ athleteId, firstname });
+    window.history.replaceState({}, "", window.location.pathname);
+  }, []);
+
   function updateField(event) {
+    const { name, value } = event.target;
+
     setForm((currentForm) => ({
       ...currentForm,
-      [event.target.name]: event.target.value,
+      [name]: value,
     }));
+
+    if (name === "city") {
+      setLocationStatus(value ? `Using ${value}` : defaultLocation.status);
+    }
+
+    if (name === "zipCode" && value && form.city) {
+      setLocationStatus(`Using ${form.city}`);
+    }
+  }
+
+  function useCurrentLocation() {
+    setError("");
+
+    if (!navigator.geolocation) {
+      setLocationStatus(defaultLocation.status);
+      setError("Current location is not available in this browser.");
+      return;
+    }
+
+    setIsDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setForm((currentForm) => ({
+          ...currentForm,
+          latitude: String(position.coords.latitude),
+          longitude: String(position.coords.longitude),
+        }));
+        setLocationStatus("Location detected");
+        setIsDetectingLocation(false);
+      },
+      () => {
+        setLocationStatus(defaultLocation.status);
+        setError("Could not detect your location. Using Arlington, VA.");
+        setIsDetectingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
   }
 
   async function generateRecoveryFeast(event) {
     event.preventDefault();
     setError("");
+
+    if (!stravaUser.athleteId) {
+      setError("Connect Strava first");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -78,7 +152,7 @@ function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          athlete_id: Number(form.athlete_id),
+          athlete_id: Number(stravaUser.athleteId),
           latitude: Number(form.latitude),
           longitude: Number(form.longitude),
           cuisine: form.cuisine,
@@ -99,6 +173,14 @@ function App() {
     }
   }
 
+  function disconnectStrava() {
+    localStorage.removeItem("strava_athlete_id");
+    localStorage.removeItem("strava_firstname");
+    setStravaUser({ athleteId: "", firstname: "" });
+    setPlan(emptyPlan);
+    setError("");
+  }
+
   return (
     <main className="min-h-screen bg-stone-100 px-4 py-6 text-stone-950 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
@@ -111,12 +193,23 @@ function App() {
               Turn your latest workout into a recovery feast plan.
             </h1>
           </div>
-          <a
-            className="inline-flex h-11 items-center justify-center rounded-md bg-orange-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700"
-            href={`${API_BASE_URL}/auth/strava/login`}
-          >
-            Connect Strava
-          </a>
+          <div className="flex flex-col gap-2 sm:items-end">
+            <a
+              className="inline-flex h-11 items-center justify-center rounded-md bg-orange-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700"
+              href={`${API_BASE_URL}/auth/strava/login`}
+            >
+              Connect Strava
+            </a>
+            {isStravaConnected ? (
+              <button
+                className="text-sm font-medium text-stone-600 underline-offset-4 hover:text-stone-950 hover:underline"
+                onClick={disconnectStrava}
+                type="button"
+              >
+                Disconnect Strava
+              </button>
+            ) : null}
+          </div>
         </header>
 
         <section className="mt-6 grid gap-6 lg:grid-cols-[360px_1fr]">
@@ -126,50 +219,59 @@ function App() {
           >
             <h2 className="text-lg font-semibold">Recovery Inputs</h2>
             <div className="mt-5 grid gap-4">
+              <p
+                className={`rounded-md px-3 py-2 text-sm font-medium ${
+                  isStravaConnected
+                    ? "bg-orange-50 text-orange-800"
+                    : "bg-stone-100 text-stone-600"
+                }`}
+              >
+                {isStravaConnected
+                  ? `Strava connected as ${stravaUser.firstname || "athlete"}`
+                  : "Connect Strava first"}
+              </p>
+
+              <button
+                className="h-11 rounded-md border border-emerald-700 px-4 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-stone-300 disabled:text-stone-500"
+                disabled={isDetectingLocation}
+                onClick={useCurrentLocation}
+                type="button"
+              >
+                {isDetectingLocation
+                  ? "Detecting Location..."
+                  : "Use My Current Location"}
+              </button>
+
               <label className="grid gap-2">
-                <span className="text-sm font-medium text-stone-700">
-                  Athlete ID
-                </span>
+                <span className="text-sm font-medium text-stone-700">City</span>
                 <input
                   className="h-11 rounded-md border border-stone-300 px-3 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
-                  name="athlete_id"
+                  name="city"
                   onChange={updateField}
-                  placeholder="123456"
-                  required
-                  type="number"
-                  value={form.athlete_id}
+                  placeholder="Arlington"
+                  type="text"
+                  value={form.city}
                 />
               </label>
 
               <label className="grid gap-2">
                 <span className="text-sm font-medium text-stone-700">
-                  Latitude
+                  ZIP Code
                 </span>
                 <input
                   className="h-11 rounded-md border border-stone-300 px-3 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
-                  name="latitude"
+                  inputMode="numeric"
+                  name="zipCode"
                   onChange={updateField}
-                  required
-                  step="any"
-                  type="number"
-                  value={form.latitude}
+                  placeholder="22201"
+                  type="text"
+                  value={form.zipCode}
                 />
               </label>
 
-              <label className="grid gap-2">
-                <span className="text-sm font-medium text-stone-700">
-                  Longitude
-                </span>
-                <input
-                  className="h-11 rounded-md border border-stone-300 px-3 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
-                  name="longitude"
-                  onChange={updateField}
-                  required
-                  step="any"
-                  type="number"
-                  value={form.longitude}
-                />
-              </label>
+              <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
+                {locationStatus}
+              </p>
 
               <label className="grid gap-2">
                 <span className="text-sm font-medium text-stone-700">
@@ -198,7 +300,7 @@ function App() {
 
             <button
               className="mt-5 h-12 w-full rounded-md bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-stone-400"
-              disabled={isLoading}
+              disabled={isLoading || !isStravaConnected}
               type="submit"
             >
               {isLoading ? "Building your feast..." : "Generate Recovery Feast"}
