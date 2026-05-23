@@ -37,9 +37,18 @@ You also need the project pushed to GitHub.
 Name: recovery-feast-backend
 Root Directory: backend
 Runtime: Python 3
+Python Version: 3.11.9
 Build Command: pip install -r requirements.txt
 Start Command: uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
+
+The backend includes `backend/runtime.txt` with:
+
+```text
+python-3.11.9
+```
+
+This keeps Render on a stable Python version for the current FastAPI, SQLAlchemy, and Pydantic stack.
 
 Do not deploy yet if the environment variables are not ready.
 
