@@ -42,6 +42,26 @@ Build Command: pip install -r requirements.txt
 Start Command: uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
+These exact settings matter on Render:
+
+```text
+Root Directory: backend
+Build Command: pip install -r requirements.txt
+Start Command: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
+The backend also includes an optional Render-compatible start script:
+
+```text
+backend/start.sh
+```
+
+If you use the script instead, the Render start command can be:
+
+```text
+./start.sh
+```
+
 The backend includes `backend/runtime.txt` with:
 
 ```text

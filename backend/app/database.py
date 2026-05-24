@@ -18,6 +18,14 @@ class Base(DeclarativeBase):
     pass
 
 
+def get_database_type() -> str:
+    if database_url.startswith("sqlite"):
+        return "sqlite"
+    if database_url.startswith("postgresql"):
+        return "postgres"
+    return "unknown"
+
+
 def get_db():
     db = SessionLocal()
     try:
